@@ -16,11 +16,41 @@ GROUP BY playerid, firstname, lastname, schoolid
 ORDER BY salary DESC;
 --Answer: David Price, $81,851,296
 
---2. Using the fielding table, group players into three groups based on their position: label players with position OF as "Outfield", those with position "SS", "1B", "2B", and "3B" as "Infield", and those with position "P" or "C" as "Battery". Determine the number of putouts made by each of these three groups in 2016.
-
---Answer:
---3. Find the average number of strikeouts per game by decade since 1920. Round the numbers you report to 2 decimal places. Do the same for home runs per game. Do you see any trends? (Hint: For this question, you might find it helpful to look at the **generate_series** function (https://www.postgresql.org/docs/9.1/functions-srf.html). If you want to see an example of this in action, check out this DataCamp video: https://campus.datacamp.com/courses/exploratory-data-analysis-in-sql/summarizing-and-aggregating-numeric-data?ex=6)
-
+--2. Using the fielding table, group players into three groups based on their position: 
+--label players with position OF as "Outfield", those with position "SS", "1B", "2B", and "3B" 
+--as "Infield", and those with position "P" or "C" as "Battery". Determine the number of putouts made by each of these three groups in 2016.
+SELECT CASE WHEN pos = 'OF' THEN 'Outfield'
+		 WHEN pos IN('SS', '1B', '2B', '3B') THEN 'Infield'
+	 	 WHEN pos IN('P', 'C') THEN 'Battery'
+	 	 END AS position_groups,
+	SUM(po) AS putouts
+	FROM fielding
+	GROUP BY position_groups;
+--Answer: Outfield- 2,731,506, Infield- 6,101,378, Battery- 2,575,499
+--3. Find the average number of strikeouts per game by decade since 1920. Round the numbers you
+--report to 2 decimal places. Do the same for home runs per game. Do you see any trends? 
+--(Hint: For this question, you might find it helpful to look at the **generate_series** function (https://www.postgresql.org/docs/9.1/functions-srf.html). 
+--If you want to see an example of this in action, check out this DataCamp video: https://campus.datacamp.com/courses/exploratory-data-analysis-in-sql/summarizing-and-aggregating-numeric-data?ex=6)
+WITH annual AS (SELECT yearID AS year, ROUND(SUM(SO), 2) AS annual_SO, ROUND(SUM(G)/2.0, 2) AS annual_G
+FROM teams
+GROUP BY year
+ORDER BY year),
+decades AS (SELECT CONCAT(
+        FLOOR(year / 10) * 10, 
+        '-', 
+        (CEIL(year / 10) * 10) + 9
+    ) as decade, ROUND(SUM(annual_SO), 2) AS decade_SO, ROUND(SUM(annual_G), 2) AS decade_G
+FROM annual
+WHERE year >= 1920
+GROUP BY
+    CONCAT(
+        FLOOR(year / 10) * 10,
+        '-', 
+        (CEIL(year / 10) * 10) + 9
+    )
+				)
+SELECT decade, ROUND(decade_SO/decade_g, 2) AS SO_per_game
+FROM decades;
 --Answer:
 --4. Find the player who had the most success stealing bases in 2016, where __success__ is measured as the percentage of stolen base attempts which are successful. (A stolen base attempt results either in a stolen base or being caught stealing.) Consider only players who attempted _at least_ 20 stolen bases. Report the players' names, number of stolen bases, number of attempts, and stolen base percentage.
 
